@@ -1,33 +1,35 @@
-import matplotlib.pyplot as plt
+import re
+from datetime import datetime
+
+from bs4 import BeautifulSoup
 from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tokenize import WordPunctTokenizer
-import joblib
-from bs4 import BeautifulSoup
-import re
 from sklearn.feature_extraction.text import TfidfVectorizer
-from datetime import datetime
 
+import env
+from constants import EXTENSION_TFIDF, DIR_TFIDF
+from file_manager import dump_file
 
 time = datetime.now().strftime("%d%b%Y%H%M%S")
 processed = 0
 tok = WordPunctTokenizer()
 lem = WordNetLemmatizer()
 
-def text_processing(tweet):
 
+def text_processing(tweet):
     tweet = BeautifulSoup(tweet, 'lxml').get_text() # HTML elemek dekódolása
     tweet = tweet.lower()
     tweet = re.sub(r'@[A-Za-z0-9]+', '', tweet) # @ mention-ök szűrése
     tweet = re.sub('https?://[A-Za-z0-9./]+','', tweet) # linkek szűrése
     tweet = tweet.encode('utf-8-sig').decode("utf-8-sig")
     tweet = re.sub("[^a-zA-Z]", " ", tweet) # hashmarkok és számok szűrése
-    # tweet = [t for t in tweet.split() if re.match(r'[^\W\d]*$', t)]
+    if env.STOPWORDS:
+        tweet = [t for t in tweet.split() if re.match(r'[^\W\d]*$', t)]
     tweet = tok.tokenize(tweet) # tokenizálás
-    # tweet = [word for word in tweet if word not in stopwords.words('english')] # ---------> stopword-ök szűrése
+    if env.STOPWORDS:
+        tweet = [word for word in tweet if word not in stopwords.words('english')] # ---------> stopword-ök szűrése
     tweet = [lem.lemmatize(word, 'v') for word in tweet] # szavak normalizálása
-
-    #print(tweet)
 
     # Meghosszabbított szavak lerövidítése, pl "awesoooome"
     def replace_elongated_words(tweet_list):
@@ -60,10 +62,11 @@ def text_processing(tweet):
     return tweet
 
 
-def vectorize_tweets(dataset, features):
+def vectorize_tweets(model, dataset, features):
     tfidf = TfidfVectorizer(max_features=features, analyzer=text_processing)
     tfidf = tfidf.fit(dataset)
-    joblib.dump(tfidf, 'tfidf' + time + '.tfidf')
+
+    dump_file(tfidf, 'tfidf', DIR_TFIDF, model, EXTENSION_TFIDF)
 
     return tfidf
 

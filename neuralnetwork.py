@@ -1,6 +1,7 @@
 import numpy as np
-from keras.models import Sequential
 from keras.layers import Dense, Dropout
+from keras.models import Sequential
+
 
 def train(X_train_mod, y_train, features, shuffle, drop, layer1, layer2, epoch, validation):
     model_nn = Sequential()
